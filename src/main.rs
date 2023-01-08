@@ -1,10 +1,11 @@
-use bevy::{prelude::*, sprite::MaterialMesh2dBundle, diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin}};
+use bevy::{diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin}, prelude::*, sprite::MaterialMesh2dBundle};
 use crate::game::Game;
 use crate::node::Node;
 
 mod node;
 mod game;
 mod box_boundary;
+mod grid;
 
 fn main() {
     let mut game = Game {
@@ -22,22 +23,6 @@ fn main() {
         .add_plugin(FrameTimeDiagnosticsPlugin::default())
         .add_startup_system(setup_cells)
         .run();
-}
-
-struct Grid {
-    radius: i32,
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn can_index_a_cartesian_index() {
-        let grid = Grid {
-            radius: 8
-        };
-    }
 }
 
 #[derive(Resource)]
