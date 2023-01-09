@@ -24,7 +24,6 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugin(LogDiagnosticsPlugin::default())
         .add_plugin(FrameTimeDiagnosticsPlugin::default())
-        //.add_startup_system(setup_game_batched)
         .add_startup_system(setup_game)
         .add_system(evolve_game)
         .run();
@@ -50,46 +49,20 @@ fn setup_game(
     mut game_state: ResMut<GameState>,
 ) {
     commands.spawn(Camera2dBundle::default());
-    let nodes = game_state.grid.get_cells().into_iter().map(|node| {
-        let color = if game_state.game.is_node_alive(node.x, node.y) { Color::YELLOW } else { Color::BLACK };
-        commands.spawn((
-            MaterialMesh2dBundle {
-                mesh: meshes.add(shape::Cube::new(game_state.cell_size as f32).into()).into(),
-                material: materials.add(ColorMaterial::from(color)),
-                transform: Transform::from_translation(Vec3::new((node.x * game_state.cell_size) as f32, (node.y * game_state.cell_size) as f32, 0.)),
-                ..default()
-            },
-        )).id()
-    }).collect();
-
-    commands.insert_resource(EvolutionTimer {
-        // create the repeating timer
-        timer: Timer::new(Duration::from_micros(5), TimerMode::Repeating),
-    });
-    game_state.node_entities = nodes;
-}
-
-fn setup_game_batched(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-    mut game_state: ResMut<GameState>,
-) {
-    commands.spawn(Camera2dBundle::default());
-    let mut bundles = vec![];
+    let mut entity_ids = vec![];
     for node in game_state.grid.get_cells() {
         let color = if game_state.game.is_node_alive(node.x, node.y) { Color::YELLOW } else { Color::BLACK };
-        bundles.push(
+        let entity_id = commands.spawn(
             MaterialMesh2dBundle {
                 mesh: meshes.add(shape::Cube::new(game_state.cell_size as f32).into()).into(),
                 material: materials.add(ColorMaterial::from(color)),
                 transform: Transform::from_translation(Vec3::new((node.x * game_state.cell_size) as f32, (node.y * game_state.cell_size) as f32, 0.)),
                 ..default()
-            },
-        )
+            }
+        ).id();
+        entity_ids.push(entity_id);
     }
-
-    commands.spawn_batch(bundles);
+    game_state.node_entities = entity_ids;
     commands.insert_resource(EvolutionTimer {
         // create the repeating timer
         timer: Timer::new(Duration::from_millis(500), TimerMode::Repeating),
@@ -107,6 +80,7 @@ fn evolve_game(
     config.timer.tick(time.delta());
     if config.timer.finished() {
         for node in &game_state.game.live_nodes {
+            if node.x < -game_state.grid.radius || node.y >= game_state.grid.radius { break };
             let entity_index = game_state.grid.get_index(&node);
             let mut entity = commands.entity(game_state.node_entities[entity_index]);
             entity.insert((
@@ -120,6 +94,7 @@ fn evolve_game(
         }
         game_state.game.evolve();
         for node in &game_state.game.live_nodes {
+            if node.x < -game_state.grid.radius || node.y >= game_state.grid.radius { break };
             let entity_index = game_state.grid.get_index(&node);
             let mut entity = commands.entity(game_state.node_entities[entity_index]);
             entity.insert((

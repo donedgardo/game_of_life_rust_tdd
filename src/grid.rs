@@ -1,7 +1,7 @@
 use crate::node::Node;
 
 pub struct Grid {
-    radius: i32,
+    pub radius: i32,
     cells: Vec<Node>,
 }
 
