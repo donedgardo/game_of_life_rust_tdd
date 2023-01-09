@@ -6,6 +6,8 @@ pub struct Game {
     pub live_nodes: Vec<Node>,
 }
 
+impl Game {}
+
 impl Game {
     pub fn new() -> Self {
         Game { live_nodes: Vec::new() }
@@ -71,6 +73,22 @@ impl Game {
 
     fn should_node_live(&mut self, x: i32, y: i32, live_neighbors: &Vec<Node>) -> bool {
         self.is_node_alive(x, y) && !self.live_node_should_die(&live_neighbors) || !self.is_node_alive(x, y) && self.dead_node_should_live(&live_neighbors)
+    }
+
+    pub fn toggle(&mut self, node: &Node) {
+        if !self.live_nodes.contains(&node) {
+            self.live_nodes.push(node.clone());
+        } else {
+            let index_element = self.live_nodes
+                .iter()
+                .position(|n| n.eq(&node));
+            match index_element {
+                None => {}
+                Some(index) => {
+                    self.live_nodes.remove(index);
+                }
+            }
+        }
     }
 }
 
@@ -263,5 +281,25 @@ mod test {
         let node_zero = Node { x: 0, y: 0 };
         let live_neighbors = game.get_live_neighbors(&node_zero);
         assert_eq!(live_neighbors.len(), 0);
+    }
+
+    #[test]
+    fn can_toggle_node_from_dead_to_alive() {
+        let mut game = Game {
+            live_nodes: vec![]
+        };
+        let node_zero = Node { x: 0, y: 0 };
+        game.toggle(&node_zero);
+        assert_eq!(game.live_nodes.len(), 1);
+    }
+
+    #[test]
+    fn can_toggle_node_from_alive_to_dead() {
+        let mut game = Game {
+            live_nodes: vec![Node { x: 0, y: 0 }]
+        };
+        let node_zero = Node { x: 0, y: 0 };
+        game.toggle(&node_zero);
+        assert_eq!(game.live_nodes.len(), 0);
     }
 }
