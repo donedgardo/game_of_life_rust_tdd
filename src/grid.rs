@@ -6,8 +6,6 @@ pub struct Grid {
     cells: Vec<Node>,
 }
 
-impl Grid {}
-
 impl Grid {
     pub fn new(radius: i32, cell_size: i32) -> Self {
         let mut cells = Vec::new();
@@ -22,6 +20,7 @@ impl Grid {
             cells,
         }
     }
+
     pub fn get_node(&self, index: usize) -> &Node {
         &self.cells[index]
     }

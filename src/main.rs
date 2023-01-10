@@ -1,8 +1,7 @@
 use std::time::Duration;
 use crate::game::Game;
 use crate::grid::Grid;
-use crate::node::Node;
-use bevy::{diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin}, prelude::*, sprite::MaterialMesh2dBundle};
+use bevy::{prelude::*, sprite::MaterialMesh2dBundle};
 use bevy::render::camera::RenderTarget;
 
 mod node;
@@ -19,8 +18,6 @@ fn main() {
             status: GameStatus::Pause,
         })
         .add_plugins(DefaultPlugins)
-        //.add_plugin(LogDiagnosticsPlugin::default())
-        //.add_plugin(FrameTimeDiagnosticsPlugin::default())
         .add_startup_system(setup_game)
         .add_system(my_cursor_system)
         .add_system(my_game_play_pause_system)

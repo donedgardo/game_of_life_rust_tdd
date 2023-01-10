@@ -1,12 +1,9 @@
 use crate::box_boundary::BoxBoundary;
 use crate::node::Node;
 
-
 pub struct Game {
     pub live_nodes: Vec<Node>,
 }
-
-impl Game {}
 
 impl Game {
     pub fn new() -> Self {
@@ -27,7 +24,6 @@ impl Game {
         self.live_nodes = new_live_nodes;
     }
 
-
     pub fn is_node_alive(&self, x: i32, y: i32) -> bool {
         self.live_nodes.contains(&Node { x, y })
     }
@@ -40,7 +36,6 @@ impl Game {
             .collect();
         live_neighbors
     }
-
 
     pub fn live_node_should_die(&self, live_neighbors: &Vec<Node>) -> bool {
         live_neighbors.len() < 2 || live_neighbors.len() > 3
@@ -72,21 +67,18 @@ impl Game {
     }
 
     fn should_node_live(&mut self, x: i32, y: i32, live_neighbors: &Vec<Node>) -> bool {
-        self.is_node_alive(x, y) && !self.live_node_should_die(&live_neighbors) || !self.is_node_alive(x, y) && self.dead_node_should_live(&live_neighbors)
+        (self.is_node_alive(x, y) && !self.live_node_should_die(&live_neighbors))
+            || (!self.is_node_alive(x, y) && self.dead_node_should_live(&live_neighbors))
     }
 
     pub fn toggle(&mut self, node: &Node) {
         if !self.live_nodes.contains(&node) {
             self.live_nodes.push(node.clone());
         } else {
-            let index_element = self.live_nodes
+            if let Some(index) = self.live_nodes
                 .iter()
-                .position(|n| n.eq(&node));
-            match index_element {
-                None => {}
-                Some(index) => {
-                    self.live_nodes.remove(index);
-                }
+                .position(|n| n.eq(&node)) {
+                self.live_nodes.remove(index);
             }
         }
     }
