@@ -129,7 +129,7 @@ fn my_game_play_pause_system(
     keys: Res<Input<KeyCode>>,
 ) {
     if keys.just_pressed(KeyCode::Space) {
-        if (game_state.status == GameStatus::Pause) {
+        if game_state.status == GameStatus::Pause {
             game_state.status = GameStatus::Play;
         } else {
             game_state.status = GameStatus::Pause;

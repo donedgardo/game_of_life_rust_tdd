@@ -61,3 +61,16 @@ Example output:
 ........
 
 ```
+
+
+## Environment
+
+Dependencies:
+- rustup
+- rustup target install wasm32-unknown-unknown
+- `cargo install -f wasm-bindgen-cli`
+
+
+## Build
+- cargo build --release --target wasm32-unknown-unknown
+- wasm-bindgen --out-dir ./pkg/ --target web ./target/wasm32-unknown-unknown/release/game_of_life.wasm
