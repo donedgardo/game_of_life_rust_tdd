@@ -1,0 +1,19 @@
+{
+  "name": "game-of-life-rust",
+  "version": "0.1.0",
+  "description": "Rust game of life",
+  "main": "index.js",
+  "scripts": {
+    "build": "webpack --config webpack.config.js",
+    "start": "webpack-dev-server"
+  },
+  "dependencies": {
+    "wasm-game-of-life": "file:../pkg"
+  },
+  "devDependencies": {
+    "copy-webpack-plugin": "^11.0.0",
+    "webpack": "^5.75.0",
+    "webpack-cli": "^5.0.1",
+    "webpack-dev-server": "^4.11.1"
+  }
+}
