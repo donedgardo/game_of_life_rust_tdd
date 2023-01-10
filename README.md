@@ -72,5 +72,21 @@ Dependencies:
 
 
 ## Build
-- cargo build --release --target wasm32-unknown-unknown
-- wasm-bindgen --out-dir ./pkg/ --target web ./target/wasm32-unknown-unknown/release/game_of_life.wasm
+
+- Build native release build
+```sh
+cargo build --release 
+```
+- Build wasm release build
+```sh
+cargo build --release --target wasm32-unknown-unknown
+```
+- Build wasm js bindings
+```sh 
+wasm-bindgen --out-dir ./pkg/ --target web ./target/wasm32-unknown-unknown/release/game_of_life.wasm
+```
+
+- Build web (root: /www)
+```shell
+npm build
+```

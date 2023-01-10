@@ -1,2 +1,4 @@
 /target
-/pkg
+/pkg/*.wasm
+/pkg/*.js
+/pkg/*.ts
