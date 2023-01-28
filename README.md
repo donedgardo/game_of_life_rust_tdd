@@ -88,5 +88,5 @@ wasm-bindgen --out-dir ./pkg/ --target web ./target/wasm32-unknown-unknown/relea
 
 - Build web (root: /www)
 ```shell
-npm build
+npm run build
 ```

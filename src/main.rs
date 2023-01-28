@@ -2,7 +2,10 @@ use std::time::Duration;
 use crate::game::Game;
 use crate::grid::Grid;
 use bevy::{prelude::*, sprite::MaterialMesh2dBundle};
+use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::render::camera::RenderTarget;
+use bevy::sprite::Mesh2dHandle;
+use crate::node::Node;
 
 mod node;
 mod game;
@@ -13,11 +16,13 @@ fn main() {
     App::new()
         .insert_resource(GameState {
             game: Game::new(),
-            node_entities: vec![],
-            grid: Grid::new(50, 10),
+            grid: Grid::new(1000, 10),
             status: GameStatus::Pause,
         })
+        .insert_resource(ClearColor(Color::rgb(0., 0., 0.)))
         .add_plugins(DefaultPlugins)
+        .add_plugin(LogDiagnosticsPlugin::default())
+        .add_plugin(FrameTimeDiagnosticsPlugin::default())
         .add_startup_system(setup_game)
         .add_system(my_cursor_system)
         .add_system(my_game_play_pause_system)
@@ -36,7 +41,6 @@ struct GameState {
     game: Game,
     status: GameStatus,
     grid: Grid,
-    node_entities: Vec<Entity>,
 }
 
 #[derive(Resource)]
@@ -47,29 +51,55 @@ struct EvolutionTimer {
 #[derive(Component)]
 struct MainCamera;
 
+#[derive(Component)]
+struct Cell {
+    x: i32,
+    y: i32,
+}
+
+#[derive(Bundle)]
+struct CellBundle {
+    #[bundle]
+    mesh_2d_bundle: MaterialMesh2dBundle<ColorMaterial>,
+    cell: Cell,
+}
+
+impl CellBundle {
+    fn new(mesh: Mesh2dHandle, material: Handle<ColorMaterial>, node: &Node, cell_size: i32) -> Self {
+        Self {
+            mesh_2d_bundle: MaterialMesh2dBundle {
+                mesh,
+                material,
+                transform: Transform::from_translation(
+                    Vec3::new(
+                        (node.x * cell_size) as f32,
+                        (node.y * cell_size) as f32, 0.)
+                ),
+                ..default()
+            },
+            cell: Cell {
+                x: node.x,
+                y: node.y,
+            },
+        }
+    }
+}
+
 fn setup_game(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    mut game_state: ResMut<GameState>,
+    game_state: Res<GameState>,
 ) {
     commands.spawn((Camera2dBundle::default(), MainCamera));
-    let mut entity_ids = vec![];
     for node in game_state.grid.get_cells() {
-        let color = if game_state.game.is_node_alive(node.x, node.y) { Color::YELLOW } else { Color::BLACK };
-        let entity_id = commands.spawn(
-            MaterialMesh2dBundle {
-                mesh: meshes.add(shape::Cube::new(game_state.grid.cell_size as f32).into()).into(),
-                material: materials.add(ColorMaterial::from(color)),
-                transform: Transform::from_translation(Vec3::new((node.x * game_state.grid.cell_size) as f32, (node.y * game_state.grid.cell_size) as f32, 0.)),
-                ..default()
-            }
-        ).id();
-        entity_ids.push(entity_id);
+        if game_state.game.is_node_alive(node.x, node.y) {
+            let mesh = meshes.add(shape::Cube::new(game_state.grid.cell_size as f32).into()).into();
+            let material = materials.add(ColorMaterial::from(Color::BLUE));
+            commands.spawn(CellBundle::new(mesh, material, node, game_state.grid.cell_size));
+        }
     }
-    game_state.node_entities = entity_ids;
     commands.insert_resource(EvolutionTimer {
-        // create the repeating timer
         timer: Timer::new(Duration::from_millis(500), TimerMode::Repeating),
     });
 }
@@ -80,26 +110,15 @@ fn evolve_game(
     mut config: ResMut<EvolutionTimer>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
+    cell_q: Query<Entity, With<Cell>>,
     time: Res<Time>,
 ) {
     if game_state.status == GameStatus::Pause { return; };
     config.timer.tick(time.delta());
     if !config.timer.finished() { return; }
-    for node in &game_state.game.live_nodes {
-        if node.x < -game_state.grid.radius ||
-            node.x >= game_state.grid.radius ||
-            node.y < -game_state.grid.radius ||
-            node.y >= game_state.grid.radius { continue; };
-        let entity_index = game_state.grid.get_index(&node);
-        let mut entity = commands.entity(game_state.node_entities[entity_index]);
-        entity.insert((
-            MaterialMesh2dBundle {
-                mesh: meshes.add(shape::Cube::new(game_state.grid.cell_size as f32).into()).into(),
-                material: materials.add(ColorMaterial::from(Color::BLACK)),
-                transform: Transform::from_translation(Vec3::new((node.x * game_state.grid.cell_size) as f32, (node.y * game_state.grid.cell_size) as f32, 0.)),
-                ..default()
-            },
-        ));
+    for cell in cell_q.iter() {
+        let mut entity = commands.entity(cell);
+        entity.despawn();
     }
     game_state.game.evolve();
     for node in &game_state.game.live_nodes {
@@ -107,19 +126,13 @@ fn evolve_game(
             node.x >= game_state.grid.radius ||
             node.y < -game_state.grid.radius ||
             node.y >= game_state.grid.radius { continue; };
-        let entity_index = game_state.grid.get_index(&node);
-        let mut entity = commands.entity(game_state.node_entities[entity_index]);
-        entity.insert((
-            MaterialMesh2dBundle {
-                mesh: meshes.add(shape::Cube::new(game_state.grid.cell_size as f32).into()).into(),
-                material: materials.add(ColorMaterial::from(Color::YELLOW)),
-                transform: Transform::from_translation(Vec3::new((node.x * game_state.grid.cell_size) as f32, (node.y * game_state.grid.cell_size) as f32, 0.)),
-                ..default()
-            },
-        ));
+        if game_state.game.is_node_alive(node.x, node.y) {
+            let mesh = meshes.add(shape::Cube::new(game_state.grid.cell_size as f32).into()).into();
+            let material = materials.add(ColorMaterial::from(Color::BLUE));
+            commands.spawn(CellBundle::new(mesh, material, node, game_state.grid.cell_size));
+        }
     }
 }
-
 
 fn my_game_play_pause_system(
     mut game_state: ResMut<GameState>,
@@ -135,39 +148,42 @@ fn my_game_play_pause_system(
 }
 
 fn my_cursor_system(
-    wnds: Res<Windows>,
+    windows: Res<Windows>,
     q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
     buttons: Res<Input<MouseButton>>,
     mut game_state: ResMut<GameState>,
     mut commands: Commands,
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
+    cell_q: Query<(&Cell, Entity)>,
 ) {
     if !buttons.just_pressed(MouseButton::Left) {
         return;
     }
-    if let Some(world_pos) = get_cursor_world_pos(wnds, q_camera) {
-        let node = Grid::get_node_from_world_pos(world_pos.x, world_pos.y, game_state.grid.cell_size as u32);
-        game_state.game.toggle(&node);
-        let mut entity = commands.entity(game_state.node_entities[game_state.grid.get_index(&node)]);
-        let color = if game_state.game.is_node_alive(node.x, node.y) { Color::YELLOW } else { Color::BLACK };
-        entity.insert(
-            MaterialMesh2dBundle {
-                mesh: meshes.add(shape::Cube::new(game_state.grid.cell_size as f32).into()).into(),
-                material: materials.add(ColorMaterial::from(color)),
-                transform: Transform::from_translation(Vec3::new((node.x * game_state.grid.cell_size) as f32, (node.y * game_state.grid.cell_size) as f32, 0.)),
-                ..default()
-            },
-        );
+    let world_pos_res = get_cursor_world_pos(windows, q_camera);
+    if world_pos_res.is_none() { return; }
+    let world_pos = world_pos_res.unwrap();
+    let node = Grid::get_node_from_world_pos(world_pos.x, world_pos.y, game_state.grid.cell_size as u32);
+    if game_state.game.is_node_alive(node.x, node.y) {
+        for (cell, entity) in cell_q.iter() {
+            if node.x == cell.x && node.y == cell.y {
+                commands.entity(entity).despawn();
+            }
+        }
+    } else {
+        let mesh = meshes.add(shape::Cube::new(game_state.grid.cell_size as f32).into()).into();
+        let material = materials.add(ColorMaterial::from(Color::BLUE));
+        commands.spawn(CellBundle::new(mesh, material, &node, game_state.grid.cell_size));
     }
+    game_state.game.toggle(&node);
 }
 
-fn get_cursor_world_pos(wnds: Res<Windows>, q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>) -> Option<Vec2> {
+fn get_cursor_world_pos(windows: Res<Windows>, q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>) -> Option<Vec2> {
     let (camera, camera_transform) = q_camera.single();
     let wnd = if let RenderTarget::Window(id) = camera.target {
-        wnds.get(id).unwrap()
+        windows.get(id).unwrap()
     } else {
-        wnds.get_primary().unwrap()
+        windows.get_primary().unwrap()
     };
     let wind_pos = wnd.cursor_position();
     return match wind_pos {
