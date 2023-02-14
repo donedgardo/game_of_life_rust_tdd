@@ -2,6 +2,8 @@
 
 This is my implementation of Conway's game of life using test driven development in the Rust language.
 
+## Live Demo
+[gameoflife.edgardocarreras.com](https://gameoflife.edgardocarreras.com)
 
 ### Problem Statement 
 
